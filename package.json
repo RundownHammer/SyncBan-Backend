@@ -1,5 +1,5 @@
 {
-  "name": "live-todo-server",
+  "name": "syncban-server",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
