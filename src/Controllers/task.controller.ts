@@ -1,4 +1,4 @@
-import Task from '../models/task.js'
+import Task, { ITask } from '../models/task.js'
 import User from '../models/user.js'
 import mongoose from 'mongoose'
 import type { Response } from 'express'
@@ -142,17 +142,20 @@ export const deleteTask = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'You must be in a team to delete tasks' })
     }
 
-    // Find and delete task
-    const task = await Task.findOneAndDelete({
+    // First find the task to ensure it belongs to the user's team
+    const taskToDelete = await Task.findOne({
       _id: id,
       team: user.currentTeam
     })
 
-    if (!task) {
+    if (!taskToDelete) {
       return res.status(404).json({ message: 'Task not found' })
     }
 
-    console.log(`✅ Deleted task: ${task.title}`)
+    // Delete the task
+    await Task.findByIdAndDelete(id)
+
+    console.log(`✅ Deleted task: ${taskToDelete.title}`)
 
     res.json({ message: 'Task deleted successfully' })
   } catch (error) {
