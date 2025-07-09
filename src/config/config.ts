@@ -11,7 +11,7 @@ export const config = {
   
   // CORS origins based on environment
   CORS_ORIGINS: process.env.NODE_ENV === 'production' 
-    ? [process.env.CLIENT_URL!, 'https://your-frontend-domain.com']
+    ? [process.env.CLIENT_URL!]  // Remove the hardcoded domain
     : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5000'],
     
   // Database options

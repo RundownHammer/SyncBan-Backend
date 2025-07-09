@@ -1,6 +1,7 @@
 import User from '../models/user.js'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { config } from '../config/config.js'  // Add this import
 import type { Request, Response } from 'express'
 
 export const register = async (req: Request, res: Response) => {
@@ -14,8 +15,8 @@ export const register = async (req: Request, res: Response) => {
     const user = new User({ username, email, password: hashed })
     await user.save()
 
-    // Generate token and return user data
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET!, { expiresIn: '7d' })
+    // Use config.JWT_SECRET instead of process.env.JWT_SECRET
+    const token = jwt.sign({ id: user._id, email: user.email }, config.JWT_SECRET, { expiresIn: '7d' })
     
     res.status(201).json({ 
       message: 'User registered successfully',
@@ -42,7 +43,8 @@ export const login = async (req: Request, res: Response) => {
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) return res.status(401).json({ message: 'Invalid credentials' })
 
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET!, { expiresIn: '7d' })
+    // Use config.JWT_SECRET instead of process.env.JWT_SECRET
+    const token = jwt.sign({ id: user._id, email: user.email }, config.JWT_SECRET, { expiresIn: '7d' })
     
     res.json({ 
       token,

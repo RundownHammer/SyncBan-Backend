@@ -3,7 +3,7 @@ import http from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
 import { connectDB } from './config/db.js'
-import { config } from './config/config.js'
+import { config } from './config/config.js'  // Add this import
 import authRoutes from './routes/auth.routes.js'
 import taskRoutes from './routes/task.routes.js'
 import teamRoutes from './routes/team.routes.js'
@@ -15,7 +15,7 @@ const server = http.createServer(app)
 // Socket.IO with environment-aware CORS
 const io = new Server(server, {
   cors: { 
-    origin: config.CORS_ORIGINS,
+    origin: config.CORS_ORIGINS,  // Use config instead of hardcoded
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
   }
@@ -23,7 +23,7 @@ const io = new Server(server, {
 
 // CORS middleware
 app.use(cors({
-  origin: config.CORS_ORIGINS,
+  origin: config.CORS_ORIGINS,  // Use config instead of hardcoded
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -50,15 +50,6 @@ app.get('/api/health', (req, res) => {
   })
 })
 
-// Serve static files in production
-if (config.NODE_ENV === 'production') {
-  app.use(express.static('dist/public'))
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'))
-  })
-}
-
 // Setup Socket.IO
 setupSockets(io)
 
@@ -68,16 +59,4 @@ server.listen(config.PORT, () => {
   console.log(`📡 Socket.IO server ready`)
   console.log(`🌐 Environment: ${config.NODE_ENV}`)
   console.log(`🔗 CORS enabled for: ${config.CORS_ORIGINS.join(', ')}`)
-  
-  if (config.NODE_ENV === 'development') {
-    console.log(`📋 API Documentation: http://localhost:${config.PORT}/api/health`)
-  }
-})
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully')
-  server.close(() => {
-    console.log('Process terminated')
-  })
 })

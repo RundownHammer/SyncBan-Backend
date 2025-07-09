@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
-import { Request, Response, NextFunction } from 'express'
+import { config } from '../config/config.js'  // Add this import
+import type { Request, Response, NextFunction } from 'express'
 
 export interface AuthPayload {
   id: string
@@ -10,21 +11,20 @@ export interface AuthRequest extends Request {
   user?: AuthPayload
 }
 
-export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization
+  const token = authHeader?.split(' ')[1]
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ message: 'No token provided' })
-    return
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' })
   }
 
-  const token = authHeader.split(' ')[1]
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as AuthPayload
+    // Use config.JWT_SECRET instead of process.env.JWT_SECRET
+    const decoded = jwt.verify(token, config.JWT_SECRET) as AuthPayload
     req.user = decoded
     next()
   } catch (error) {
-    res.status(401).json({ message: 'Invalid token' })
+    return res.status(401).json({ message: 'Invalid token' })
   }
 }
