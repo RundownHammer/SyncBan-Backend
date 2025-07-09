@@ -1,30 +1,31 @@
 import jwt from 'jsonwebtoken'
-import { config } from '../config/config.js'  // Add this import
+import { config } from '../config/config.js'
 import type { Request, Response, NextFunction } from 'express'
 
-export interface AuthPayload {
-  id: string
-  email: string
-}
-
 export interface AuthRequest extends Request {
-  user?: AuthPayload
+  user?: {
+    id: string
+    email: string
+  }
 }
 
-export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization
-  const token = authHeader?.split(' ')[1]
-
-  if (!token) {
-    return res.status(401).json({ message: 'No token provided' })
-  }
-
+export const verifyToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Use config.JWT_SECRET instead of process.env.JWT_SECRET
-    const decoded = jwt.verify(token, config.JWT_SECRET) as AuthPayload
+    const authHeader = req.header('Authorization')
+    const token = authHeader && authHeader.startsWith('Bearer ') 
+      ? authHeader.slice(7) 
+      : null
+
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' })
+    }
+
+    const decoded = jwt.verify(token, config.JWT_SECRET) as any
     req.user = decoded
     next()
   } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' })
+    res.status(403).json({ message: 'Invalid token.' })
   }
 }
+
+export const authenticateToken = verifyToken

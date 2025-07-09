@@ -7,7 +7,12 @@ import type { AuthRequest } from '../middlewares/authMiddleware.js'
 export const createTeam = async (req: AuthRequest, res: Response) => {
   try {
     const { name } = req.body
-    const userId = req.user!.id
+    const userId = req.user!.id // Now we can use ! because middleware guarantees user exists
+
+    // Manual validation
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ message: 'Team name is required' })
+    }
 
     // Check if user is already in a team
     const user = await User.findById(userId)
@@ -15,9 +20,16 @@ export const createTeam = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'You are already in a team. Leave current team first.' })
     }
 
+    // Generate team code
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const codeExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+
     // Create new team
     const team = new Team({
-      name,
+      name: name.trim(),
+      code,
+      codeExpiresAt,
+      isActive: true,
       createdBy: new mongoose.Types.ObjectId(userId),
       members: [new mongoose.Types.ObjectId(userId)]
     })
@@ -33,10 +45,12 @@ export const createTeam = async (req: AuthRequest, res: Response) => {
         _id: team._id,
         name: team.name,
         code: team.code,
+        codeExpiresAt: team.codeExpiresAt,
+        isActive: team.isActive,
         createdBy: team.createdBy,
         members: team.members,
-        codeExpiresAt: team.codeExpiresAt,
-        isActive: team.isActive
+        createdAt: team.createdAt,
+        updatedAt: team.updatedAt
       }
     })
   } catch (error) {
@@ -50,6 +64,11 @@ export const joinTeam = async (req: AuthRequest, res: Response) => {
     const { code } = req.body
     const userId = req.user!.id
 
+    // Manual validation
+    if (!code || typeof code !== 'string' || code.trim().length === 0) {
+      return res.status(400).json({ message: 'Team code is required' })
+    }
+
     // Check if user is already in a team
     const user = await User.findById(userId)
     if (user?.currentTeam) {
@@ -58,7 +77,7 @@ export const joinTeam = async (req: AuthRequest, res: Response) => {
 
     // Find team by code
     const team = await Team.findOne({ 
-      code: code.toUpperCase(), 
+      code: code.trim().toUpperCase(), 
       isActive: true,
       codeExpiresAt: { $gt: new Date() }
     })
@@ -82,6 +101,7 @@ export const joinTeam = async (req: AuthRequest, res: Response) => {
       team: {
         _id: team._id,
         name: team.name,
+        code: team.code,
         memberCount: team.members.length
       }
     })
@@ -107,12 +127,6 @@ export const leaveTeam = async (req: AuthRequest, res: Response) => {
 
     // Remove user from team
     team.members = team.members.filter(memberId => !memberId.equals(new mongoose.Types.ObjectId(userId)))
-    
-    // If no members left, deactivate team
-    if (team.members.length === 0) {
-      team.isActive = false
-    }
-    
     await team.save()
 
     // Remove team from user
@@ -166,9 +180,9 @@ export const regenerateTeamCode = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Only team creator can regenerate code' })
     }
 
-    // Generate new code and extend expiry
+    // Generate new code
     team.code = Math.random().toString(36).substring(2, 8).toUpperCase()
-    team.codeExpiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+    team.codeExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
     await team.save()
 
     res.json({

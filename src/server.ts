@@ -4,112 +4,133 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import { connectDB } from './config/db.js'
 import { config } from './config/config.js'
-import authRoutes from './routes/auth.routes.js'
-import taskRoutes from './routes/task.routes.js'
-import teamRoutes from './routes/team.routes.js'
-import setupSockets from './sockets/index.js'
 
-const app = express()
-const server = http.createServer(app)
+const startServer = async () => {
+  const app = express()
+  const server = http.createServer(app)
 
-// More permissive CORS configuration
-const corsOptions = {
-  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true)
-    
-    // Allow your frontend domains
-    const allowedOrigins = [
-      'https://syncban.netlify.app',
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:5000'
-    ]
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true)
-    } else {
-      console.log(`CORS blocked origin: ${origin}`)
-      callback(null, true) // Temporarily allow all origins for debugging
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}
-
-app.use(cors(corsOptions))
-
-// Socket.IO with fixed CORS
-const io = new Server(server, {
-  cors: {
-    origin: ['https://syncban.netlify.app', 'http://localhost:5173'],
-    methods: ['GET', 'POST'],
-    credentials: true
+  // CORS configuration
+  const corsOptions = {
+    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+      if (!origin) return callback(null, true)
+      
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://localhost:5000'
+      ]
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        console.log(`CORS blocked origin: ${origin}`)
+        callback(null, true)
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   }
-})
 
-// Add preflight handling
-app.options('*', cors(corsOptions))
+  app.use(cors(corsOptions))
 
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-
-// Health check endpoint (move before database connection)
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    message: 'Live-ToDo Server is running!', 
-    timestamp: new Date().toISOString(),
-    environment: config.NODE_ENV,
-    version: '1.0.0',
+  // Socket.IO setup
+  const io = new Server(server, {
     cors: {
-      allowedOrigins: ['https://syncban.netlify.app', 'http://localhost:5173']
+      origin: ['http://localhost:5173'],
+      methods: ['GET', 'POST'],
+      credentials: true
     }
   })
-})
 
-// Connect to Database
-try {
-  await connectDB()
-  console.log('✅ Database connected successfully')
-} catch (error) {
-  console.error('❌ Database connection failed:', error)
-  process.exit(1)
+  // Middleware
+  app.use(express.json({ limit: '10mb' }))
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+  // Add debugging middleware
+  app.use((req, res, next) => {
+    console.log(`🔍 ${req.method} ${req.path}`)
+    next()
+  })
+
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      message: 'Live-ToDo Server is running!', 
+      timestamp: new Date().toISOString(),
+      environment: config.NODE_ENV
+    })
+  })
+
+  try {
+    // Connect to Database first
+    await connectDB()
+    console.log('✅ Database connected successfully')
+
+    // Test basic route first
+    console.log('🔧 Adding basic test route...')
+    app.get('/api/test', (req, res) => {
+      res.json({ message: 'Test route working' })
+    })
+
+    // Add auth routes with controller
+    console.log('🔧 Adding auth routes with controller...')
+    try {
+      const authRoutes = await import('./routes/auth.routes.js')
+      app.use('/api/auth', authRoutes.default)
+      console.log('✅ Auth routes added successfully')
+    } catch (error) {
+      console.error('❌ Error adding auth routes:', error)
+      throw error
+    }
+
+    // Add task routes
+    console.log('🔧 Adding task routes...')
+    try {
+      const taskRoutes = await import('./routes/task.routes.js')
+      app.use('/api/tasks', taskRoutes.default)
+      console.log('✅ Task routes added successfully')
+    } catch (error) {
+      console.error('❌ Error adding task routes:', error)
+      throw error
+    }
+
+    // Add team routes
+    console.log('🔧 Adding team routes...')
+    try {
+      const teamRoutes = await import('./routes/team.routes.js')
+      app.use('/api/teams', teamRoutes.default)
+      console.log('✅ Team routes added successfully')
+    } catch (error) {
+      console.error('❌ Error adding team routes:', error)
+      throw error
+    }
+
+    // 404 handler
+    app.use('*', (req, res) => {
+      res.status(404).json({ message: 'Route not found' })
+    })
+
+    // Start server
+    const PORT = config.PORT || 5000
+    server.listen(PORT, () => {
+      console.log(`🚀 Live-ToDo Server running on port ${PORT}`)
+      console.log(`🌐 Environment: ${config.NODE_ENV}`)
+      console.log(`🔗 Test routes:`)
+      console.log(`   - GET http://localhost:${PORT}/api/health`)
+      console.log(`   - GET http://localhost:${PORT}/api/test`)
+      console.log(`   - POST http://localhost:${PORT}/api/auth/register`)
+      console.log(`   - POST http://localhost:${PORT}/api/auth/login`)
+      console.log(`   - GET http://localhost:${PORT}/api/tasks`)
+      console.log(`   - GET http://localhost:${PORT}/api/teams/test`)
+    })
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error)
+    process.exit(1)
+  }
 }
 
-// API Routes
-app.use('/api/auth', authRoutes)
-app.use('/api/tasks', taskRoutes)
-app.use('/api/teams', teamRoutes)
-
-// Setup Socket.IO
-setupSockets(io)
-
-// Error handling middleware
-app.use((err: any, req: any, res: any, next: any) => {
-  console.error('Server error:', err)
-  res.status(500).json({ 
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  })
-})
-
-// Start server
-const PORT = config.PORT || 5000
-server.listen(PORT, () => {
-  console.log(`🚀 Live-ToDo Server running on port ${PORT}`)
-  console.log(`📡 Socket.IO server ready`)
-  console.log(`🌐 Environment: ${config.NODE_ENV}`)
-  console.log(`🔗 CORS enabled for: https://syncban.netlify.app`)
-  console.log(`🏥 Health check: http://localhost:${PORT}/api/health`)
-})
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully')
-  server.close(() => {
-    console.log('Process terminated')
-  })
-})
+startServer()
