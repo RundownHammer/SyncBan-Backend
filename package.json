@@ -1,14 +1,17 @@
 {
   "name": "syncban-server",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
-    "dev": "nodemon --exec tsx src/server.ts"
+    "dev": "nodemon --exec tsx src/server.ts",
+    "railway:build": "npm run build",
+    "railway:start": "npm start"
   },
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -17,7 +20,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.2",
     "socket.io": "^4.8.1",
-    "ts-node-dev": "^2.0.0"
+    "typescript": "^5.8.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -28,8 +31,6 @@
     "@types/socket.io": "^3.0.1",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
-    "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
-  },
-  "type": "module"
+    "tsx": "^4.20.3"
+  }
 }

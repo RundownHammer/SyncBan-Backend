@@ -1,39 +1,40 @@
-import mongoose from 'mongoose';
+import mongoose from 'mongoose'
+import { config } from './config.js'
 
 export const connectDB = async (): Promise<void> => {
   try {
-    const mongoURI = process.env.MONGO_URI;
+    console.log('🔌 Attempting to connect to MongoDB...')
+    console.log('🔧 Using MONGO_URI:', config.MONGO_URI ? 'Set ✅' : 'Missing ❌')
     
-    if (!mongoURI) {
-      throw new Error('MONGO_URI environment variable is not defined');
+    if (!config.MONGO_URI) {
+      throw new Error('MONGO_URI environment variable is not defined')
     }
 
-    await mongoose.connect(mongoURI);
-    
-    console.log('✅ MongoDB Atlas connected successfully');
-    console.log(`📍 Connected to database: ${mongoose.connection.name}`);
-  } catch (err) {
-    console.error('❌ Failed to connect to MongoDB Atlas:', err);
-    process.exit(1);
+    const conn = await mongoose.connect(config.MONGO_URI, {
+      retryWrites: true,
+      w: 'majority'
+    })
+
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`)
+  } catch (error) {
+    console.error('❌ Failed to connect to MongoDB Atlas:', error)
+    console.error('🔧 Available environment variables:')
+    console.error(Object.keys(process.env).filter(key => 
+      key.includes('MONGO') || key.includes('JWT') || key.includes('NODE')
+    ))
+    process.exit(1)
   }
-};
+}
 
 // Handle connection events
 mongoose.connection.on('connected', () => {
-  console.log('🔗 Mongoose connected to MongoDB Atlas');
-});
+  console.log('📡 Mongoose connected to MongoDB')
+})
 
 mongoose.connection.on('error', (err) => {
-  console.error('❌ Mongoose connection error:', err);
-});
+  console.error('❌ Mongoose connection error:', err)
+})
 
 mongoose.connection.on('disconnected', () => {
-  console.log('🔌 Mongoose disconnected from MongoDB Atlas');
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  await mongoose.connection.close();
-  console.log('📴 MongoDB Atlas connection closed due to app termination');
-  process.exit(0);
-});
+  console.log('📡 Mongoose disconnected from MongoDB')
+})
