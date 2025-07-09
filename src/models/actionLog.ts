@@ -1,9 +1,15 @@
-import mongoose from 'mongoose'
+import mongoose, { Schema, Document } from 'mongoose'
 
-const ActionLogSchema = new mongoose.Schema({
-  user:    { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  action:  { type: String, required: true },
-  taskId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
+export interface IActionLog extends Document {
+  user: mongoose.Types.ObjectId
+  action: string
+  taskId?: mongoose.Types.ObjectId
+}
+
+const ActionLogSchema = new Schema<IActionLog>({
+  user: { type: Schema.Types.ObjectId, ref: 'User' },
+  action: { type: String, required: true },
+  taskId: { type: Schema.Types.ObjectId, ref: 'Task' }
 }, { timestamps: true })
 
-export default mongoose.model('ActionLog', ActionLogSchema)
+export default mongoose.model<IActionLog>('ActionLog', ActionLogSchema)
