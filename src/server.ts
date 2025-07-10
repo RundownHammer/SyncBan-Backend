@@ -12,7 +12,7 @@ const startServer = async () => {
   const getAllowedOrigins = () => {
     const origins = [
       'http://localhost:5173',
-      'http://localhost:3000',
+      'http://localhost:3000', 
       'http://localhost:5000'
     ]
     
@@ -20,14 +20,14 @@ const startServer = async () => {
     if (config.NODE_ENV === 'production') {
       origins.push(
         'https://syncban.netlify.app',
-        'https://syncban-backend.up.railway.app'
+        'https://your-app-name.onrender.com'  // Add your Render URL
       )
     }
     
     return origins
   }
 
-  // CORS configuration for production
+  // CORS configuration
   const corsOptions = {
     origin: getAllowedOrigins(),
     credentials: true,
@@ -40,17 +40,12 @@ const startServer = async () => {
   console.log('🔧 CORS_ORIGINS:', getAllowedOrigins())
 
   app.use(cors(corsOptions))
-
-  // Handle preflight requests explicitly
   app.options('*', cors(corsOptions))
 
-  // Socket.IO setup with updated CORS
+  // Socket.IO setup
   const io = new Server(server, {
     cors: {
-      origin: [
-        'http://localhost:5173',
-        'https://syncban.netlify.app'
-      ],
+      origin: getAllowedOrigins(),
       methods: ['GET', 'POST'],
       credentials: true
     }
@@ -60,82 +55,79 @@ const startServer = async () => {
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-  // Add debugging middleware
+  // Debugging middleware
   app.use((req, res, next) => {
     console.log(`🔍 ${req.method} ${req.path}`)
     next()
   })
 
-  // Health check endpoint
+  // Health check endpoints (consolidated)
+  app.get('/', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      message: 'Live-ToDo Server is running',
+      environment: config.NODE_ENV,
+      timestamp: new Date().toISOString()
+    })
+  })
+
+  app.get('/health', (req, res) => {
+    res.json({ 
+      status: 'healthy', 
+      message: 'Health check passed',
+      environment: config.NODE_ENV,
+      timestamp: new Date().toISOString()
+    })
+  })
+
   app.get('/api/health', (req, res) => {
     res.json({ 
-      message: 'Live-ToDo Server is running!', 
+      status: 'ok',
+      message: 'Live-ToDo API is running!', 
       timestamp: new Date().toISOString(),
       environment: config.NODE_ENV
     })
   })
 
   try {
-    // Connect to Database first
+    // Connect to Database
     await connectDB()
     console.log('✅ Database connected successfully')
 
-    // Test basic route first
-    console.log('🔧 Adding basic test route...')
+    // Test route
     app.get('/api/test', (req, res) => {
       res.json({ message: 'Test route working' })
     })
 
-    // Add auth routes with controller
-    console.log('🔧 Adding auth routes with controller...')
-    try {
-      const authRoutes = await import('./routes/auth.routes.js')
-      app.use('/api/auth', authRoutes.default)
-      console.log('✅ Auth routes added successfully')
-    } catch (error) {
-      console.error('❌ Error adding auth routes:', error)
-      throw error
-    }
+    // Add routes
+    const authRoutes = await import('./routes/auth.routes.js')
+    app.use('/api/auth', authRoutes.default)
+    console.log('✅ Auth routes added')
 
-    // Add task routes
-    console.log('🔧 Adding task routes...')
-    try {
-      const taskRoutes = await import('./routes/task.routes.js')
-      app.use('/api/tasks', taskRoutes.default)
-      console.log('✅ Task routes added successfully')
-    } catch (error) {
-      console.error('❌ Error adding task routes:', error)
-      throw error
-    }
+    const taskRoutes = await import('./routes/task.routes.js')
+    app.use('/api/tasks', taskRoutes.default)
+    console.log('✅ Task routes added')
 
-    // Add team routes
-    console.log('🔧 Adding team routes...')
-    try {
-      const teamRoutes = await import('./routes/team.routes.js')
-      app.use('/api/teams', teamRoutes.default)
-      console.log('✅ Team routes added successfully')
-    } catch (error) {
-      console.error('❌ Error adding team routes:', error)
-      throw error
-    }
+    const teamRoutes = await import('./routes/team.routes.js')
+    app.use('/api/teams', teamRoutes.default)
+    console.log('✅ Team routes added')
 
     // 404 handler
     app.use('*', (req, res) => {
-      res.status(404).json({ message: 'Route not found' })
+      res.status(404).json({ 
+        message: 'Route not found',
+        path: req.originalUrl,
+        method: req.method
+      })
     })
 
     // Start server
-    const PORT = config.PORT || 5000
-    server.listen(PORT, () => {
-      console.log(`🚀 Live-ToDo Server running on port ${PORT}`)
+    const PORT = parseInt(process.env.PORT || String(config.PORT) || '5000', 10)
+    const HOST = '0.0.0.0'
+
+    server.listen(PORT, HOST, () => {
+      console.log(`🚀 Live-ToDo Server running on ${HOST}:${PORT}`)
       console.log(`🌐 Environment: ${config.NODE_ENV}`)
-      console.log(`🔗 Test routes:`)
-      console.log(`   - GET http://localhost:${PORT}/api/health`)
-      console.log(`   - GET http://localhost:${PORT}/api/test`)
-      console.log(`   - POST http://localhost:${PORT}/api/auth/register`)
-      console.log(`   - POST http://localhost:${PORT}/api/auth/login`)
-      console.log(`   - GET http://localhost:${PORT}/api/tasks`)
-      console.log(`   - GET http://localhost:${PORT}/api/teams/test`)
     })
 
   } catch (error) {
@@ -143,5 +135,14 @@ const startServer = async () => {
     process.exit(1)
   }
 }
+
+// Error handling
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Promise Rejection:', err)
+})
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err)
+})
 
 startServer()
