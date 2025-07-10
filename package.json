@@ -4,10 +4,9 @@
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "clean": "rm -rf dist"
+    "start": "node server/dist/server.js",
+    "build": "cd server && tsc",
+    "dev": "cd server && nodemon src/server.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
