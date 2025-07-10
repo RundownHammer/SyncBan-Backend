@@ -63,6 +63,11 @@ const setupSockets = (io: Server) => {
           .populate('createdBy', 'username')
           .populate('assignedTo', 'username')
 
+        if (!populatedTask) {
+          socket.emit('error', 'Failed to retrieve created task')
+          return
+        }
+
         // Log activity
         await logActivity('task:created', socket.userId!, socket.teamId!, {
           taskTitle: newTask.title
