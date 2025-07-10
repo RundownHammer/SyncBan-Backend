@@ -39,19 +39,15 @@ export const createTeam = async (req: AuthRequest, res: Response) => {
     // Update user's current team
     await User.findByIdAndUpdate(userId, { currentTeam: team._id })
 
+    // Populate the team members for the response
+    const populatedTeam = await Team.findById(team._id).populate({
+      path: 'members',
+      select: 'username email'
+    })
+
     res.status(201).json({
       message: 'Team created successfully',
-      team: {
-        _id: team._id,
-        name: team.name,
-        code: team.code,
-        codeExpiresAt: team.codeExpiresAt,
-        isActive: team.isActive,
-        createdBy: team.createdBy,
-        members: team.members,
-        createdAt: team.createdAt,
-        updatedAt: team.updatedAt
-      }
+      team: populatedTeam
     })
   } catch (error) {
     console.error('Create team error:', error)
@@ -96,14 +92,15 @@ export const joinTeam = async (req: AuthRequest, res: Response) => {
     // Update user's current team
     await User.findByIdAndUpdate(userId, { currentTeam: team._id })
 
+    // Populate the team members for the response
+    const populatedTeam = await Team.findById(team._id).populate({
+      path: 'members',
+      select: 'username email'
+    })
+
     res.json({
       message: 'Successfully joined team',
-      team: {
-        _id: team._id,
-        name: team.name,
-        code: team.code,
-        memberCount: team.members.length
-      }
+      team: populatedTeam
     })
   } catch (error) {
     console.error('Join team error:', error)

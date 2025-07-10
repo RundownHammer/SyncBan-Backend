@@ -4,6 +4,7 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import { connectDB } from './config/db.js'
 import { config } from './config/config.js'
+import setupSockets from './sockets/index.js'
 
 const startServer = async () => {
   const app = express()
@@ -65,7 +66,7 @@ const startServer = async () => {
   app.get('/', (req: Request, res: Response) => {
     res.json({ 
       status: 'ok', 
-      message: 'Live-ToDo Server is running',
+      message: 'SyncBan Server is running',  // Changed
       environment: config.NODE_ENV,
       timestamp: new Date().toISOString()
     })
@@ -83,7 +84,7 @@ const startServer = async () => {
   app.get('/api/health', (req: Request, res: Response) => {
     res.json({ 
       status: 'ok',
-      message: 'Live-ToDo API is running!', 
+      message: 'SyncBan API is running!',  // Changed
       timestamp: new Date().toISOString(),
       environment: config.NODE_ENV
     })
@@ -112,6 +113,14 @@ const startServer = async () => {
     app.use('/api/teams', teamRoutes.default)
     console.log('✅ Team routes added')
 
+    const activityRoutes = await import('./routes/activity.routes.js')
+    app.use('/api/activities', activityRoutes.default)
+    console.log('✅ Activity routes added')
+
+    // Setup Socket.IO event handlers
+    setupSockets(io)
+    console.log('✅ Socket.IO setup complete')
+
     // 404 handler
     app.use('*', (req: Request, res: Response) => {
       res.status(404).json({ 
@@ -126,7 +135,7 @@ const startServer = async () => {
     const HOST = '0.0.0.0'
 
     server.listen(PORT, HOST, () => {
-      console.log(`🚀 Live-ToDo Server running on ${HOST}:${PORT}`)
+      console.log(`🚀 SyncBan Server running on ${HOST}:${PORT}`)  // Changed
       console.log(`🌐 Environment: ${config.NODE_ENV}`)
     })
 
