@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { type Request, type Response, type NextFunction } from 'express'
 import http from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
@@ -56,13 +56,13 @@ const startServer = async () => {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
   // Debugging middleware
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`🔍 ${req.method} ${req.path}`)
     next()
   })
 
-  // Health check endpoints (consolidated)
-  app.get('/', (req, res) => {
+  // Health check endpoints
+  app.get('/', (req: Request, res: Response) => {
     res.json({ 
       status: 'ok', 
       message: 'Live-ToDo Server is running',
@@ -71,7 +71,7 @@ const startServer = async () => {
     })
   })
 
-  app.get('/health', (req, res) => {
+  app.get('/health', (req: Request, res: Response) => {
     res.json({ 
       status: 'healthy', 
       message: 'Health check passed',
@@ -80,7 +80,7 @@ const startServer = async () => {
     })
   })
 
-  app.get('/api/health', (req, res) => {
+  app.get('/api/health', (req: Request, res: Response) => {
     res.json({ 
       status: 'ok',
       message: 'Live-ToDo API is running!', 
@@ -95,7 +95,7 @@ const startServer = async () => {
     console.log('✅ Database connected successfully')
 
     // Test route
-    app.get('/api/test', (req, res) => {
+    app.get('/api/test', (req: Request, res: Response) => {
       res.json({ message: 'Test route working' })
     })
 
@@ -113,7 +113,7 @@ const startServer = async () => {
     console.log('✅ Team routes added')
 
     // 404 handler
-    app.use('*', (req, res) => {
+    app.use('*', (req: Request, res: Response) => {
       res.status(404).json({ 
         message: 'Route not found',
         path: req.originalUrl,

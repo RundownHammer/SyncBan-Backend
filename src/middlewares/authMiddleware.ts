@@ -6,25 +6,35 @@ export interface AuthRequest extends Request {
   user?: {
     id: string
     email: string
+    iat: number
+    exp: number
   }
 }
 
-export const verifyToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.header('Authorization')
-    const token = authHeader && authHeader.startsWith('Bearer ') 
-      ? authHeader.slice(7) 
-      : null
+    console.log('🔍 Auth Header:', authHeader ? 'Present' : 'Missing')
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Access denied. No valid token provided.' })
+    }
+
+    const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+    console.log('🔍 Extracted Token:', token ? 'Present' : 'Missing')
 
     if (!token) {
       return res.status(401).json({ message: 'Access denied. No token provided.' })
     }
 
     const decoded = jwt.verify(token, config.JWT_SECRET) as any
+    console.log('✅ Token decoded:', { id: decoded.id, email: decoded.email })
+    
     req.user = decoded
     next()
   } catch (error) {
-    res.status(403).json({ message: 'Invalid token.' })
+    console.error('🔒 Token verification failed:', error)
+    res.status(401).json({ message: 'Invalid token.' })
   }
 }
 
