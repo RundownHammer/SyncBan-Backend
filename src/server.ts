@@ -19,8 +19,8 @@ const startServer = async () => {
     // Add production origins
     if (config.NODE_ENV === 'production') {
       origins.push(
-        'https://syncban.netlify.app',
-        'https://your-app-name.onrender.com'  // Add your Render URL
+        'https://syncban.netlify.app',  // Update with your actual frontend URL
+        'https://syncban-backend.onrender.com'  // Your backend URL
       )
     }
     
