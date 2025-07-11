@@ -20,8 +20,8 @@ const startServer = async () => {
     // Add production origins
     if (config.NODE_ENV === 'production') {
       origins.push(
-        'https://syncban.netlify.app',  // Update with your actual frontend URL
-        'https://syncban-backend.onrender.com'  // Your backend URL
+        'https://planhive.netlify.app',  // Update with your actual frontend URL
+        'https://planhive-backend.onrender.com'  // Your backend URL
       )
     }
     
@@ -66,7 +66,7 @@ const startServer = async () => {
   app.get('/', (req: Request, res: Response) => {
     res.json({ 
       status: 'ok', 
-      message: 'SyncBan Server is running',  // Changed
+      message: 'PlanHive Server is running',  // Changed
       environment: config.NODE_ENV,
       timestamp: new Date().toISOString()
     })
@@ -84,7 +84,7 @@ const startServer = async () => {
   app.get('/api/health', (req: Request, res: Response) => {
     res.json({ 
       status: 'ok',
-      message: 'SyncBan API is running!',  // Changed
+      message: 'PlanHive API is running!',  // Changed
       timestamp: new Date().toISOString(),
       environment: config.NODE_ENV
     })
@@ -135,7 +135,7 @@ const startServer = async () => {
     const HOST = '0.0.0.0'
 
     server.listen(PORT, HOST, () => {
-      console.log(`🚀 SyncBan Server running on ${HOST}:${PORT}`)  // Changed
+      console.log(`🚀 PlanHive Server running on ${HOST}:${PORT}`)  // Changed
       console.log(`🌐 Environment: ${config.NODE_ENV}`)
     })
 

@@ -9,7 +9,7 @@ export const config = {
   JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
   CLIENT_URL: process.env.CLIENT_URL || (
     process.env.NODE_ENV === 'production' 
-      ? 'https://syncban.netlify.app' 
+      ? 'https://planhive.netlify.app' 
       : 'http://localhost:5173'
   )
 }
